@@ -1,0 +1,191 @@
+<div style="display: flex;justify-content: center;">
+    <div style="background-color: #05445E;width: 400;text-align: center;padding-bottom: 30px;">
+        <h1 style="font-family: sans-serif;color: white;">Snake</h1>
+        <canvas width="600" height="400"></canvas>
+        <h2 id="points">0</h2>
+    </div>
+</div>
+
+<script>
+    
+    //Parametros del juego
+    var pixSize = 20           //Tamaño de los pixeles [Valores enteros positivos]
+    var dispWidith = 17        //Tamaño horizontal [Valores enteros positivos]
+    var dispHeight = 15        //Tamaño vertical [Valores enteros positivos]
+    var snakeColor = "black"   //Color de la serpiente [HEX o nombre del color en ingles]
+    var fruitColor = "red"     //Color de la fruta [HEX o nombre del color en ingles]
+    var boardColor = "#189AB4" //Color del tablero [HEX o nombre del color en ingles]
+    var gameSpeed = 80        //Velocidad del juego en porcentaje [0-100]
+    
+
+
+
+    //Obtiene elementos HTML
+    var canvas = document.querySelector('canvas')
+    var drw = canvas.getContext('2d')
+    var points = document.getElementById("points")
+
+    //Determina el tamaño de canvas en base al tamaño de los pixJuego
+    canvas.width = dispWidith * pixSize
+    canvas.height = dispHeight * pixSize
+
+
+    //Clase de la serpiente
+    class Snake {
+
+        //Inicia sin direccion inicial
+        direction = "idle"
+
+        //Determina posicion inicial de la serpiente (3 eslabones en la misma posicion)
+        constructor(xpos = Math.ceil(dispWidith / 2), ypos = Math.ceil(dispHeight / 2)) {
+            this.tail = [[xpos, ypos], [xpos, ypos], [xpos, ypos]]
+        }
+
+        //Funciones de movimiento
+        //Devuelven posicion nueva del primer elemento de la cola
+        directions = {
+            up: () => { return [this.tail[0][0], this.tail[0][1] - 1] },
+            down: () => { return [this.tail[0][0], this.tail[0][1] + 1] },
+            left: () => { return [this.tail[0][0] - 1, this.tail[0][1]] },
+            right: () => { return [this.tail[0][0] + 1, this.tail[0][1]] },
+            idle: () => { return [this.tail[0][0], this.tail[0][1]] }
+        }
+
+
+        //Mueve la serpiente hacia la direccion de movimiento
+        move() {
+            this.tail.pop() //Elimina el ultimo eslabon de la cola
+            let newhead = this.directions[this.direction]() //Determina la nueva posicion del primer eslabon
+
+            //Pierde si en la siguiente posicion hay un eslabon de la serpiente
+            if (!(isFree(newhead[0], newhead[1])) && this.direction != "idle") {
+                alert("Perdiste :(")
+                reset()
+            }
+
+            //Pierde si en la siguiente posicion se sale del tablero en direccion horizontal
+            if (0 > newhead[0] || newhead[0] >= dispWidith) {
+                alert("Perdiste :(")
+                reset()
+            }
+
+            //Pierde si en la siguiente posicion se sale del tablero en direccion vertical
+            if (0 > newhead[1] || newhead[1] >= dispHeight) {
+                alert("Perdiste :(")
+                reset()
+            }
+
+            //Agrega la nueva posicion al inicio de la cola (la cabeza)
+            this.tail.unshift(newhead)
+        }
+
+        //Hace crecer la serpiente
+        eat() {
+            this.tail.push(this.tail[this.tail.length - 1]) //Duplica el ultimo eslabon de la cola
+        }
+    }
+
+
+    //Pinta el tablero
+    function clearScreen() {
+        drw.fillStyle = boardColor
+        drw.fillRect(0, 0, canvas.width, canvas.height)
+    }
+
+
+    //Dibuja un pixel en la pantalla
+    function pixel(x, y, color) {
+        drw.fillStyle = color;
+        drw.fillRect(x * pixSize, y * pixSize, pixSize, pixSize)
+    }
+
+
+    //Resetea los parametros del juego
+    function reset() {
+        snake = new Snake()
+        fruitPos = spawnFruit()
+    }
+
+
+    //Determina si la posicion dada esta libre
+    function isFree(x, y) {
+        for (let i = 0; i < snake.tail.length; i++) {
+            if (snake.tail[i][0] == x && snake.tail[i][1] == y) { return false }
+        }
+        return true
+    }
+
+
+    //Genera coordenadas de la fruta
+    function spawnFruit() {
+        let fruitPos = [Math.floor(Math.random() * dispWidith), Math.floor(Math.random() * dispHeight)] //coordenada inicial
+
+        //Itera si la posicion no esta libre
+        while (!(isFree(fruitPos[0], fruitPos[1]))) {
+            fruitPos = [Math.floor(Math.random() * dispWidith), Math.floor(Math.random() * dispHeight)]
+        }
+        return fruitPos
+    }
+
+
+    //Dibuja todos los items del fotograma
+    //*Bucle principal*
+    function drawScreen() {
+        clearScreen() //Limpia la pantalla
+        points.textContent = snake.tail.length - 3 //Muestra la puntuacion actual
+        snake.move() //Actualiza las coordenadas de la serpiente
+
+        //Dibuja la fruta y la serpiente
+        pixel(fruitPos[0], fruitPos[1], fruitColor) //Fruta
+        for (let i = 0; i < snake.tail.length; i++) { //Dibuja cada eslabon de la serpiente
+            pixel(snake.tail[i][0], snake.tail[i][1], snakeColor)
+        }
+
+        //Verifica si el primer eslabon de la serpiente (cabeza) es igual a la posicion de la fruta
+        if (snake.tail[0][0] == fruitPos[0] && snake.tail[0][1] == fruitPos[1]) {
+            snake.eat() //Agrega un eslabon a la cola
+
+            //Gana si la serpiente ha alcanzado su longitud maxima (que permite el tablero)
+            if (snake.tail.length == dispHeight * dispWidith) {
+                alert("Has ganado!!")
+                reset()
+            }
+
+            //Dibuja una nueva fruta
+            fruitPos = spawnFruit()
+            pixel(fruitPos[0], fruitPos[1], fruitColor)
+        }
+    }
+
+
+    //Al cargar la pagina inicializa los parametros
+    var snake = new Snake()
+    var fruitPos = spawnFruit()
+    clearScreen()
+
+    //Ejecuta el juego
+    setInterval(drawScreen, Math.floor(-gameSpeed * 19 / 2 + 1000))
+    // 0 %   -> 1000 ms
+    // 100 % -> 50 ms
+
+
+
+    //Detecta la entrada y actualiza la direccion de movimiento
+    document.onkeydown = (e) => {
+        const keys = {
+            "ArrowUp": "up",
+            "ArrowDown": "down",
+            "ArrowLeft": "left",
+            "ArrowRight": "right",
+            "KeyW": "up",
+            "KeyS": "down",
+            "KeyA": "left",
+            "KeyD": "right"
+        }
+
+        let movementdir = keys[e.code]
+        if (movementdir) { snake.direction = movementdir }
+    }
+
+
+</script>
